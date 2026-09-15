@@ -198,7 +198,7 @@
 		els.total.value = centsText(totalCents) + ' \u20AC';
 		els.words.textContent = moneyToWords(euros, cents);
 
-		if (bonusCents > 0) {
+		if (bonusCents > 0 && wageCents > 0) {
 			els.breakdown.textContent = centsText(wageCents) + ' \u20AC + ' +
 				centsText(bonusCents) + ' \u20AC bonus = ' + centsText(totalCents) + ' \u20AC';
 			els.breakdown.hidden = false;
@@ -240,22 +240,51 @@
 			minutes: !!mRaw.trim()
 		};
 
-		if (!baseFilled.rate && !baseFilled.hours && !baseFilled.minutes) {
-			setNeutral();
-			clearError();
-			els.hint.hidden = true;
-			return;
-		}
+		var hasAnyWage = baseFilled.rate || baseFilled.hours || baseFilled.minutes;
+		var hasAllWage = baseFilled.rate && baseFilled.hours && baseFilled.minutes;
 
-		var missing = [];
-		if (!baseFilled.rate) missing.push('an hourly rate');
-		if (!baseFilled.hours) missing.push('hours');
-		if (!baseFilled.minutes) missing.push('minutes');
-		if (missing.length) {
+		var bonusProvided = els.extra.checked && !!els.bonus.value.trim();
+
+		if (hasAnyWage && !hasAllWage) {
+			var missing = [];
+			if (!baseFilled.rate) missing.push('an hourly rate');
+			if (!baseFilled.hours) missing.push('hours');
+			if (!baseFilled.minutes) missing.push('minutes');
 			setNeutral();
 			clearError();
 			els.hint.textContent = 'Enter ' + missing.join(' and ') + ' to see the total.';
 			els.hint.hidden = false;
+			return;
+		}
+
+		// bonus (only counts if extra is on and has an amount)
+		var bonusCents = 0;
+		if (bonusProvided) {
+			var b = toNumber(els.bonus.value);
+			if (isNaN(b) || b < 0) return showError('Enter a valid bonus amount.', els.bonus);
+
+			if (els.currency.value === 'USD') {
+				if (usdToEur === null) {
+					showError('USD rate not loaded yet \u2014 try again in a moment or use EUR.', els.currency);
+					return;
+				}
+				bonusCents = Math.round(b * usdToEur * 100);
+			} else {
+				bonusCents = Math.round(b * 100);
+			}
+		}
+
+		clearError();
+		els.hint.hidden = true;
+
+		if (!hasAnyWage) {
+			// bonus-only mode: no rate/hours/minutes entered
+			if (!bonusProvided) {
+				setNeutral();
+				return;
+			}
+			setTotal(bonusCents, 0, bonusCents);
+			updateFxNote();
 			return;
 		}
 
@@ -270,27 +299,6 @@
 
 		var wageCents = Math.round(((hours * 60 + minutes) * rate * 100) / 60);
 
-		var bonusCents = 0;
-		if (els.extra.checked) {
-			var bRaw = els.bonus.value;
-			if (bRaw.trim()) {
-				var b = toNumber(bRaw);
-				if (isNaN(b) || b < 0) return showError('Enter a valid bonus amount.', els.bonus);
-
-				if (els.currency.value === 'USD') {
-					if (usdToEur === null) {
-						showError('USD rate not loaded yet \u2014 try again in a moment or use EUR.', els.currency);
-						return;
-					}
-					bonusCents = Math.round(b * usdToEur * 100);
-				} else {
-					bonusCents = Math.round(b * 100);
-				}
-			}
-		}
-
-		clearError();
-		els.hint.hidden = true;
 		setTotal(wageCents + bonusCents, wageCents, bonusCents);
 		updateFxNote();
 	}
