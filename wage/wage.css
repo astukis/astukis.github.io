@@ -93,6 +93,16 @@ body::after {
 	opacity: 0.75;
 }
 
+.crumb-link {
+	color: var(--muted);
+	text-decoration: none;
+	transition: color 0.15s ease;
+}
+
+.crumb-link:hover {
+	color: var(--accent);
+}
+
 h1 {
 	font-family: var(--font-mono);
 	font-size: 1.45rem;
