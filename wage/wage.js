@@ -10,7 +10,14 @@
 		paste: $('paste'),
 		total: $('total'),
 		words: $('words'),
-		error: $('error')
+		error: $('error'),
+		hint: $('hint'),
+		breakdown: $('breakdown'),
+		extra: $('extra'),
+		extraPanel: $('extra-panel'),
+		bonus: $('bonus'),
+		currency: $('bonus-currency'),
+		fxNote: $('fx-note')
 	};
 
 	/* ============ number to words ============ */
@@ -20,7 +27,6 @@
 	var TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
 	var SCALES = ['', 'thousand', 'million', 'billion', 'trillion'];
 
-	// 0..99 in words, hyphenated where standard English requires
 	function belowHundred(n) {
 		if (n < 20) return ONES[n];
 		var word = TENS[Math.floor(n / 10)];
@@ -28,7 +34,6 @@
 		return rest ? word + '-' + rest : word;
 	}
 
-	// 0..999 in words
 	function belowThousand(n) {
 		if (n < 100) return belowHundred(n);
 		var hundred = Math.floor(n / 100);
@@ -39,7 +44,6 @@
 
 	function numberToWords(num) {
 		if (num === 0) return 'zero';
-
 		var out = '';
 		var scale = 0;
 		while (num > 0) {
@@ -62,16 +66,21 @@
 		return e || c || 'zero euros';
 	}
 
+	/* ============ number formatting ============ */
+
+	function centsText(cents) {
+		var euros = Math.floor(cents / 100);
+		var c = Math.round(cents % 100);
+		return euros.toLocaleString('lt-LT') + ',' + String(c).padStart(2, '0');
+	}
+
 	/* ============ input parsing ============ */
 
-	// "12,5" -> 12.5 ; strips spaces and stray € signs
 	function toNumber(raw) {
 		if (typeof raw !== 'string') return NaN;
 		return parseFloat(raw.trim().replace(/\s/g, '').replace(/,/g, '.').replace(/[^\d.-]/g, ''));
 	}
 
-	// Parse a pasted duration into total minutes, or null if unreadable.
-	// Supports: "38h 7m", "38 h 30 min", "8:30", "08:30:00", "2,5h", "40"
 	function parseDuration(text) {
 		var s = text.trim().toLowerCase().replace(/\s+/g, ' ');
 		if (!s) return null;
@@ -97,17 +106,115 @@
 		return null;
 	}
 
+	/* ============ live USD -> EUR rate ============ */
+
+	var RATE_KEY = 'astukis-usd-eur';
+	var usdToEur = null;
+	var ratePromise = null;
+
+	function getCachedRate() {
+		try {
+			var cached = JSON.parse(localStorage.getItem(RATE_KEY));
+			if (cached && typeof cached.rate === 'number' && Date.now() - cached.ts < 12 * 3600 * 1000) {
+				return cached.rate;
+			}
+		} catch (e) { /* noop */ }
+		return null;
+	}
+
+	function fetchUsdToEur() {
+		if (usdToEur !== null) return Promise.resolve(usdToEur);
+		if (ratePromise) return ratePromise;
+
+		ratePromise = fetch('https://open.er-api.com/v6/latest/USD')
+			.then(function (res) {
+				if (!res.ok) throw new Error('HTTP ' + res.status);
+				return res.json();
+			})
+			.then(function (data) {
+				usdToEur = data.rates.EUR;
+				ratePromise = null;
+				try {
+					localStorage.setItem(RATE_KEY, JSON.stringify({ rate: usdToEur, ts: Date.now() }));
+				} catch (e) { /* noop */ }
+				return usdToEur;
+			})
+			.catch(function (err) {
+				ratePromise = null;
+				var cached = getCachedRate();
+				if (cached !== null) {
+					usdToEur = cached;
+					return usdToEur;
+				}
+				throw err;
+			});
+
+		return ratePromise;
+	}
+
+	function updateFxNote() {
+		if (els.currency.value !== 'USD' || usdToEur === null) return;
+		var b = 0;
+		var bRaw = els.bonus.value;
+		var hasAmount = !!bRaw.trim();
+		if (hasAmount) {
+			b = toNumber(bRaw);
+			if (isNaN(b) || b < 0) {
+				els.fxNote.textContent = '1 USD = ' + usdToEur.toFixed(4).replace('.', ',') + ' EUR';
+			} else {
+				els.fxNote.textContent = '1 USD = ' + usdToEur.toFixed(4).replace('.', ',') +
+					' EUR \u00B7 ' + centsText(Math.round(b * 100)) + ' USD = ' +
+					centsText(Math.round(b * usdToEur * 100)) + ' EUR';
+			}
+		} else {
+			els.fxNote.textContent = '1 USD = ' + usdToEur.toFixed(4).replace('.', ',') + ' EUR';
+		}
+		els.fxNote.hidden = false;
+	}
+
+	function handleCurrencyChange() {
+		if (els.currency.value === 'USD') {
+			els.fxNote.textContent = 'Fetching live USD\u2192EUR rate\u2026';
+			els.fxNote.hidden = false;
+			fetchUsdToEur().then(function () {
+				els.error.hidden = true;
+				updateFxNote();
+				calculate();
+			}, function () {
+				els.fxNote.hidden = true;
+				showError('Couldn\u2019t load USD\u2192EUR rate. Check your connection or use EUR.', els.currency);
+			});
+		} else {
+			els.fxNote.hidden = true;
+			calculate();
+		}
+	}
+
 	/* ============ calculation ============ */
 
-	function setTotal(totalCents) {
+	function setTotal(totalCents, wageCents, bonusCents) {
 		var euros = Math.floor(totalCents / 100);
 		var cents = Math.round(totalCents % 100);
-		var grouped = euros.toLocaleString('lt-LT');
-		els.total.value = grouped + ',' + String(cents).padStart(2, '0') + ' \u20AC';
+		els.total.value = centsText(totalCents) + ' \u20AC';
 		els.words.textContent = moneyToWords(euros, cents);
+
+		if (bonusCents > 0) {
+			els.breakdown.textContent = centsText(wageCents) + ' \u20AC + ' +
+				centsText(bonusCents) + ' \u20AC bonus = ' + centsText(totalCents) + ' \u20AC';
+			els.breakdown.hidden = false;
+		} else {
+			els.breakdown.hidden = true;
+		}
+	}
+
+	function setNeutral() {
+		els.total.value = '0,00 \u20AC';
+		els.words.textContent = '\u2014';
+		els.breakdown.hidden = true;
 	}
 
 	function showError(msg, field) {
+		els.hint.hidden = true;
 		els.error.textContent = msg;
 		els.error.hidden = false;
 		if (field && field.classList) {
@@ -127,10 +234,28 @@
 		var hRaw = els.hours.value;
 		var mRaw = els.minutes.value;
 
-		if (!rateRaw.trim() && !hRaw.trim() && !mRaw.trim()) {
-			els.total.value = '0,00 \u20AC';
-			els.words.textContent = '\u2014';
+		var baseFilled = {
+			rate: !!rateRaw.trim(),
+			hours: !!hRaw.trim(),
+			minutes: !!mRaw.trim()
+		};
+
+		if (!baseFilled.rate && !baseFilled.hours && !baseFilled.minutes) {
+			setNeutral();
 			clearError();
+			els.hint.hidden = true;
+			return;
+		}
+
+		var missing = [];
+		if (!baseFilled.rate) missing.push('an hourly rate');
+		if (!baseFilled.hours) missing.push('hours');
+		if (!baseFilled.minutes) missing.push('minutes');
+		if (missing.length) {
+			setNeutral();
+			clearError();
+			els.hint.textContent = 'Enter ' + missing.join(' and ') + ' to see the total.';
+			els.hint.hidden = false;
 			return;
 		}
 
@@ -143,10 +268,31 @@
 		if (isNaN(minutes)) return showError('Enter a valid number of minutes.', els.minutes);
 		if (!Number.isInteger(minutes) || minutes > 59) return showError('Minutes must be a whole number between 0 and 59.', els.minutes);
 
-		// exact integer math: work in cents, no float drift
-		var totalCents = Math.round(((hours * 60 + minutes) * rate * 100) / 60);
+		var wageCents = Math.round(((hours * 60 + minutes) * rate * 100) / 60);
+
+		var bonusCents = 0;
+		if (els.extra.checked) {
+			var bRaw = els.bonus.value;
+			if (bRaw.trim()) {
+				var b = toNumber(bRaw);
+				if (isNaN(b) || b < 0) return showError('Enter a valid bonus amount.', els.bonus);
+
+				if (els.currency.value === 'USD') {
+					if (usdToEur === null) {
+						showError('USD rate not loaded yet \u2014 try again in a moment or use EUR.', els.currency);
+						return;
+					}
+					bonusCents = Math.round(b * usdToEur * 100);
+				} else {
+					bonusCents = Math.round(b * 100);
+				}
+			}
+		}
+
 		clearError();
-		setTotal(totalCents);
+		els.hint.hidden = true;
+		setTotal(wageCents + bonusCents, wageCents, bonusCents);
+		updateFxNote();
 	}
 
 	function handlePaste() {
@@ -203,6 +349,18 @@
 	});
 
 	els.paste.addEventListener('input', handlePaste);
+	els.bonus.addEventListener('input', calculate);
+	els.currency.addEventListener('change', handleCurrencyChange);
+
+	els.extra.addEventListener('change', function () {
+		els.extraPanel.hidden = !els.extra.checked;
+		if (els.extra.checked) {
+			if (els.currency.value === 'USD') handleCurrencyChange();
+		} else {
+			els.fxNote.hidden = true;
+			calculate();
+		}
+	});
 
 	document.querySelectorAll('.copy').forEach(function (btn) {
 		if (btn.dataset.copy === 'total') {

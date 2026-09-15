@@ -24,6 +24,7 @@
 			</div>
 			<output id="total" class="total mono">0,00 €</output>
 			<output id="words" class="words">—</output>
+			<p class="breakdown mono" id="breakdown" hidden></p>
 			<div class="display-head display-foot">
 				<span class="mono label">in words</span>
 				<button type="button" class="copy mono" data-copy="words" aria-label="Copy wage in words">copy</button>
@@ -57,9 +58,30 @@
 			</label>
 
 			<p class="error mono" id="error" role="alert" hidden></p>
+
+			<label class="field check" for="extra">
+				<input type="checkbox" id="extra">
+				<span class="check-label">Charge extra</span>
+			</label>
+
+			<div class="extra" id="extra-panel" hidden>
+				<label class="field" for="bonus">
+					<span class="field-label">Bonus amount</span>
+					<span class="control split">
+						<input id="bonus" inputmode="decimal" autocomplete="off" placeholder="0,00">
+						<select id="bonus-currency" class="currency mono" aria-label="Bonus currency">
+							<option value="EUR" selected>EUR</option>
+							<option value="USD">USD</option>
+						</select>
+					</span>
+				</label>
+				<p class="fx mono" id="fx-note" hidden></p>
+			</div>
+
+			<p class="hint mono" id="hint" hidden></p>
 		</form>
 
-		<p class="tip">Calculates live as you type. Paste auto-fills hours &amp; minutes.</p>
+		<p class="tip">Calculates live as you type. Paste auto-fills hours &amp; minutes. USD extras convert at the live rate.</p>
 	</main>
 
 	<script src="wage.js"></script>
