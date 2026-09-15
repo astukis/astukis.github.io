@@ -1,51 +1,67 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
-  <head>
-    <meta charset="utf-8">
-    <script type="text/javascript"src="wage.js"></script>
-    <title>Simple Timecamp to wage generator</title>
-    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-exp.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-icons.min.css">
-  </head>
-  <body>
-    <div class="flex-centered" style="width:100vw; height:100vh;">
-      <div class="container">
-        <div class="columns">
-          <div class="column col-10 col-mx-auto">
-            <h1>Simple Timecamp to wage generator</h1>
-            <div class="input-group">
-              <span class="input-group-addon">Hourly rate</span>
-              <input type="text" class="form-input" placeholder="..." id="hourly-rate-input">
-            </div>
-            <br>
-            <div class="input-group">
-              <span class="input-group-addon">You can paste Timecamp total time here</span>
-              <input type="text" class="form-input" placeholder="..." id="timecamp-input" oninput="pastedConvert()">
-            </div>
-            <div class="input-group">
-              <span class="input-group-addon">Hours</span>
-              <input type="text" class="form-input" placeholder="..." id="hours-input">
-              <span class="input-group-addon">Minutes</span>
-              <input type="text" class="form-input" placeholder="..." id="minutes-input">
-            </div>
-            <br>
-            <button class="btn btn-primary" style="width:100%" onclick="hoursToWage()">Submit</button>
-            <br><br>
-            <h2>Results</h2>
-            <div class="input-group">
-              <span class="input-group-addon">Total wage</span>
-              <input type="text" class="form-input" placeholder="Press submit to calculate" id="wage-output" readonly>
-            </div>
-            <br>
-            <div class="input-group">
-              <span class="input-group-addon">Total wage in words</span>
-              <input type="text" class="form-input" placeholder="Press submit to calculate" id="words-output" readonly>
-            </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </body>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Wage Calculator · ASTUKIS Toolkit</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="/wage/wage.css">
+	<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+	<meta name="theme-color" content="#05060a">
+</head>
+<body>
+	<main class="shell">
+		<p class="crumb mono">~/wage$</p>
+		<h1>Wage Calculator</h1>
+
+		<section class="display" aria-live="polite">
+			<div class="display-head">
+				<span class="mono label">total</span>
+				<button type="button" class="copy mono" data-copy="total" aria-label="Copy total">copy</button>
+			</div>
+			<output id="total" class="total mono">0,00 €</output>
+			<output id="words" class="words">—</output>
+			<div class="display-head display-foot">
+				<span class="mono label">in words</span>
+				<button type="button" class="copy mono" data-copy="words" aria-label="Copy wage in words">copy</button>
+			</div>
+		</section>
+
+		<form id="form" novalidate>
+			<label class="field" for="rate">
+				<span class="field-label">Hourly rate</span>
+				<span class="control">
+					<input id="rate" inputmode="decimal" autocomplete="off" placeholder="0,00" required>
+					<span class="unit mono">&euro;/h</span>
+				</span>
+			</label>
+
+			<label class="field" for="hours">
+				<span class="field-label">Hours worked</span>
+				<span class="control split">
+					<input id="hours" inputmode="decimal" autocomplete="off" placeholder="38" required>
+					<span class="unit mono">h</span>
+					<input id="minutes" inputmode="numeric" autocomplete="off" placeholder="7" required>
+					<span class="unit mono">min</span>
+				</span>
+			</label>
+
+			<label class="field" for="paste">
+				<span class="field-label">Or paste Timecamp total</span>
+				<span class="control">
+					<input id="paste" inputmode="text" autocomplete="off" placeholder='e.g. "38h 7m" or "8:30"'>
+				</span>
+			</label>
+
+			<p class="error mono" id="error" role="alert" hidden></p>
+		</form>
+
+		<p class="tip">Calculates live as you type. Paste auto-fills hours &amp; minutes.</p>
+	</main>
+
+	<script src="/wage/wage.js"></script>
+</body>
 </html>
