@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <script type="text/javascript"src="wage.js"></script>
+    <title>Simple Timecamp to wage generator</title>
+    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-exp.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/spectre.css/dist/spectre-icons.min.css">
+  </head>
+  <body>
+    <div class="flex-centered" style="width:100vw; height:100vh;">
+      <div class="container">
+        <div class="columns">
+          <div class="column col-10 col-mx-auto">
+            <h1>Simple Timecamp to wage generator</h1>
+            <div class="input-group">
+              <span class="input-group-addon">Hourly rate</span>
+              <input type="text" class="form-input" placeholder="..." id="hourly-rate-input">
+            </div>
+            <br>
+            <div class="input-group">
+              <span class="input-group-addon">You can paste Timecamp total time here</span>
+              <input type="text" class="form-input" placeholder="..." id="timecamp-input" oninput="pastedConvert()">
+            </div>
+            <div class="input-group">
+              <span class="input-group-addon">Hours</span>
+              <input type="text" class="form-input" placeholder="..." id="hours-input">
+              <span class="input-group-addon">Minutes</span>
+              <input type="text" class="form-input" placeholder="..." id="minutes-input">
+            </div>
+            <br>
+            <button class="btn btn-primary" style="width:100%" onclick="hoursToWage()">Submit</button>
+            <br><br>
+            <h2>Results</h2>
+            <div class="input-group">
+              <span class="input-group-addon">Total wage</span>
+              <input type="text" class="form-input" placeholder="Press submit to calculate" id="wage-output" readonly>
+            </div>
+            <br>
+            <div class="input-group">
+              <span class="input-group-addon">Total wage in words</span>
+              <input type="text" class="form-input" placeholder="Press submit to calculate" id="words-output" readonly>
+            </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
