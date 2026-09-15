@@ -137,16 +137,6 @@ h1 {
 	}
 }
 
-/* terminal prompt before title */
-h1::before {
-	content: "asterisks~$ ";
-	color: var(--bg-2);
-	-webkit-text-fill-color: var(--muted);
-	font-size: 0.5em;
-	vertical-align: middle;
-	letter-spacing: 0.02em;
-}
-
 main > p:first-of-type {
 	color: var(--muted);
 	font-size: 1.04rem;
